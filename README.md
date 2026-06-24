@@ -49,4 +49,6 @@ an artifact and the findings never land in the first place.
 
 ## License
 
-[MIT](./LICENSE).
+[CC0 1.0 Universal](./LICENSE) — this work is dedicated to the public domain. You may copy,
+modify, distribute, and use it, including for commercial purposes, all without asking permission
+or providing attribution.
