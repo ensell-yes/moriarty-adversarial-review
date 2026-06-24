@@ -1,0 +1,3 @@
+# Every change requires review/approval from a repo maintainer.
+# Branch protection on `main` requires Code Owner approval before merge.
+* @ensell-yes
