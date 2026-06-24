@@ -80,17 +80,32 @@ it to match how much you're willing to spend chasing the last increment.
 
 ### Tuning the dimensions
 
-The eight dimensions are a sensible default, not a fixed law. **Swap, drop, or add dimensions to
-fit the usage context** — e.g. a pure-prose spec may not need Performance, while a data-migration
-plan might add a dedicated "Data integrity" dimension. Keep the scoring mechanics (severity → band,
-overall = mean, weakest dimension binds the gate) and adjust the dimension *set* and the *bar* to
-the artifact at hand.
+The eight dimensions are a strong default, not a fixed law — but tune them *deliberately*, never by
+silently skipping one. The invariant that keeps a review from going blind is **cover every dimension
+every time**, so within the canonical rubric a dimension that doesn't apply is marked **N/A with a
+reason** (e.g. Performance on a pure-prose spec) — not dropped. To adapt to a usage context you may
+**add** a context-specific dimension (e.g. a "Data integrity" dimension for a data-migration plan)
+or deliberately **fork** the rubric into a named variant that redefines the set up front and then
+covers *its* dimensions every time. Whichever set you use, keep the scoring mechanics (severity →
+band, overall = mean, weakest dimension binds the gate) and adjust the *bar* to the artifact at
+hand.
 
 ## Using the harness in your tools
 
 In every tool the pattern is the same: load `moriarty-adversarial-review-harness.md` as the
 reviewer's standing instructions, then assign the **author** and **reviewer** roles to *different
 models* so the loop above has real independence.
+
+> **Data boundary.** The loop pastes the artifact *and its sources of truth* — which may include
+> private code, secrets, or customer data — into one or more external services. Use only models and
+> tools approved for that artifact's confidentiality level; never paste secrets or regulated data
+> into an unapproved service; and check each provider's retention and admin-access policy first.
+
+> **Verify against current docs.** The setup paths below reflect each vendor's surface as of this
+> writing; these conventions (file locations, feature availability, UI labels) change often. Confirm
+> the exact path against the tool's current documentation — the *mechanism* (load the harness as the
+> reviewer's instructions; run author and reviewer on different models) holds even when a filename
+> moves.
 
 ### Claude Code
 
@@ -103,9 +118,10 @@ models* so the loop above has real independence.
 
 ### Codex
 
-- Put the harness in **`AGENTS.md`** at the repo root (or a scoped subdirectory) so it loads as
-  standing instructions, or save it as a custom prompt under `~/.codex/prompts/review.md` and call
-  it on demand.
+- Prefer **`AGENTS.md`** at the repo root (or a scoped subdirectory) so the harness loads as
+  standing instructions, or package it as a **Skill** — newer Codex versions steer toward Skills,
+  with a custom prompt under `~/.codex/prompts/review.md` as an on-demand fallback (treated as
+  legacy in current docs).
 - For two models, run the author and reviewer as separate Codex sessions with different `--model`
   values (or two config profiles).
 
@@ -119,16 +135,19 @@ models* so the loop above has real independence.
 
 ### GitHub Copilot
 
-- Add the harness as **repository custom instructions** in `.github/copilot-instructions.md`, or as
-  a reusable **prompt file** at `.github/prompts/review.prompt.md` that you run in Copilot Chat.
+- Add the harness as **repository custom instructions** in `.github/copilot-instructions.md` (the
+  broadly-supported, durable surface). A reusable **prompt file** at
+  `.github/prompts/review.prompt.md` also works, but prompt files are an IDE-only feature (VS Code,
+  Visual Studio, JetBrains) and still in public preview — confirm availability for your client.
 - For two models, use the Copilot Chat **model picker** to author with one model and review with
   another in a separate chat.
 
 ### Gemini (as a Gem)
 
-- In the Gemini app, open the **Gem manager → New Gem**. Name it (e.g. "Adversarial Reviewer") and
-  **paste the harness into the Instructions field**; optionally attach the harness file (and your
-  spec/standards) as **knowledge**. Save it.
+- In the Gemini app, open **Gems** ("Explore Gems" / the Gem manager, depending on your version) and
+  create a **New Gem**. Name it (e.g. "Adversarial Reviewer") and **paste the harness into the
+  Instructions field**; optionally attach the harness file (and your spec/standards) as
+  **knowledge**. Save it.
 - Use the Gem as your **reviewer**, and author in standard Gemini (or another tool/model) so the two
   roles run on independent contexts. Paste the artifact into the Gem to get scored findings.
 
