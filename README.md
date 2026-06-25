@@ -147,15 +147,16 @@ hand.
 
 In every tool the pattern is the same: load `moriarty-adversarial-review-harness.md` as the
 reviewer's standing instructions, then assign the **author** and **reviewer** roles to *different
-models* so the loop above has real independence. Each tool is shown in the three install forms —
-**Global** (user-level, every project), **Rule** (project-scoped, committed to the repo), and
-**Skill** (named, on-demand) — plus a copy-paste **setup prompt** that has your coding agent build
-the files from the harness.
+models* so the loop above has real independence. Each tool below maps the three install forms from
+[How to use it](#how-to-use-it) to that tool's files and includes a copy-paste **setup prompt** that
+has your coding agent build them from the harness.
 
 > **Harness source.** The setup prompts read the rubric from the in-repo file
 > `moriarty-adversarial-review-harness.md`. If it isn't in your working repo, point the agent at the
 > raw copy instead:
 > `https://raw.githubusercontent.com/ensell-yes/moriarty-adversarial-review/main/moriarty-adversarial-review-harness.md`
+> If your agent cannot fetch URLs, download the harness into the repo first and have the agent read
+> that local file.
 
 > **Data boundary.** The loop pastes the artifact *and its sources of truth* — which may include
 > private code, secrets, or customer data — into one or more external services. Use only models and
@@ -167,6 +168,11 @@ the files from the harness.
 > the exact path against the tool's current documentation — the *mechanism* (load the harness as the
 > reviewer's instructions; run author and reviewer on different models) holds even when a filename
 > moves.
+>
+> **Length-capped fields.** File-based installs can include the harness verbatim. UI text fields, such
+> as Copilot personal custom instructions or a Gemini Gem's Instructions field, may have length caps;
+> if the full harness does not fit, attach it as a file/knowledge source or point the instruction at a
+> local copy or the raw URL instead of pasting the whole text.
 
 ### Claude Code
 
@@ -180,7 +186,8 @@ the files from the harness.
   `model:`, or run two sessions and switch with `/model`.
 
 ```text
-Read ./moriarty-adversarial-review-harness.md (fetch the raw URL above if it isn't in this repo).
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
 Create a Claude Code skill at .claude/skills/adversarial-review/SKILL.md: YAML frontmatter with
 name: adversarial-review and a one-line description, then paste the harness body verbatim as the
 skill content. Also add to the project CLAUDE.md: "When asked to review, audit, or critique any
@@ -189,21 +196,23 @@ artifact, use the adversarial-review skill." Include the harness verbatim — do
 
 ### Codex
 
-- **Global:** `~/.codex/AGENTS.md` (applies to all Codex sessions), and/or a global skill at
-  `~/.codex/skills/adversarial-review/SKILL.md`.
+- **Global:** `~/.codex/AGENTS.md` (applies to all Codex sessions), and/or a user skill at
+  `~/.agents/skills/adversarial-review/SKILL.md`.
 - **Rule:** `AGENTS.md` at the repo root (committed project instructions).
-- **Skill:** a Codex skill at `.codex/skills/adversarial-review/SKILL.md` — newer Codex versions
-  steer toward Skills; a custom prompt under `~/.codex/prompts/review.md` is a legacy on-demand
-  fallback.
+- **Skill:** a Codex repo skill at `.agents/skills/adversarial-review/SKILL.md` — current Codex docs
+  list repo skills under `.agents/skills` and user skills under `~/.agents/skills`; a custom prompt
+  under `~/.codex/prompts/review.md` is a legacy on-demand fallback.
 - **Two models:** run author and reviewer as separate Codex sessions with different `--model` values
   (or two config profiles).
 
 ```text
-Read ./moriarty-adversarial-review-harness.md (fetch the raw URL above if it isn't in this repo).
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
 Add an "Adversarial review" section to AGENTS.md at the repo root: "When asked to review, audit, or
 critique any artifact, apply this rubric," followed by the harness body verbatim. Also create a
-Codex skill at .codex/skills/adversarial-review/SKILL.md with name/description frontmatter and the
-harness body as its content. Keep the harness text verbatim.
+Codex repo skill at .agents/skills/adversarial-review/SKILL.md with name/description frontmatter
+and the harness body as its content. Keep the harness text verbatim. If your installed Codex version
+documents a different skill path, use the current documented path instead.
 ```
 
 ### Cursor
@@ -217,7 +226,8 @@ harness body as its content. Keep the harness text verbatim.
   with a different model.
 
 ```text
-Read ./moriarty-adversarial-review-harness.md (fetch the raw URL above if it isn't in this repo).
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
 Create .cursor/rules/adversarial-review.mdc: MDC frontmatter with a description and
 alwaysApply: false (Agent-Requested), then the harness body verbatim as the rule content. The rule
 instructs: when reviewing, auditing, or critiquing an artifact, apply this rubric and score it.
@@ -227,7 +237,8 @@ Keep the harness verbatim.
 ### GitHub Copilot
 
 - **Global:** your **personal custom instructions** (GitHub → Copilot settings, or the IDE's
-  user-level Copilot instructions) — applies across all your repos.
+  user-level Copilot instructions) — applies across all your repos; if the UI field is length-capped,
+  use a short pointer to a local file or raw URL instead of pasting the whole harness.
 - **Rule:** `.github/copilot-instructions.md` (repo-wide), or a path-scoped
   `.github/instructions/review.instructions.md`.
 - **Skill (≈ prompt file):** `.github/prompts/review.prompt.md` — a reusable prompt run from Copilot
@@ -237,7 +248,8 @@ Keep the harness verbatim.
   in a separate chat.
 
 ```text
-Read ./moriarty-adversarial-review-harness.md (fetch the raw URL above if it isn't in this repo).
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
 Create .github/prompts/review.prompt.md: frontmatter with a description and mode: agent, a body line
 "Review the provided artifact against the rubric below and score it," then the harness body verbatim.
 Also create .github/copilot-instructions.md noting that artifact reviews follow this rubric. Include
@@ -250,16 +262,19 @@ the harness text verbatim, not a summary.
   CLI**, `~/.gemini/GEMINI.md` is global context.
 - **Rule:** for the CLI, `GEMINI.md` at the repo root (committed project context).
 - **Skill (≈ a Gem):** in the app, **Gems → New Gem** ("Explore Gems" / Gem manager), name it
-  "Adversarial Reviewer", paste the harness into **Instructions**, and optionally attach it as
-  **knowledge**.
+  "Adversarial Reviewer", paste the harness into **Instructions** if it fits, and otherwise attach it
+  as **knowledge** or point the Instructions field at a local copy or raw URL.
 - **Two models:** use the Gem as the reviewer and author in standard Gemini (or another tool) so the
   roles run on independent contexts.
 
 ```text
-Read ./moriarty-adversarial-review-harness.md (fetch the raw URL above if it isn't in this repo).
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
 For the Gemini CLI: create GEMINI.md at the repo root stating that artifact reviews follow this
 rubric, with the harness body included verbatim. (For the Gemini app instead: create a Gem named
-"Adversarial Reviewer" and paste the harness as its Instructions.) Keep the harness verbatim.
+"Adversarial Reviewer" and paste the harness as its Instructions if it fits; otherwise attach it as
+knowledge or point the Instructions field at a local copy or raw URL.) Keep the harness verbatim in
+file-based installs.
 ```
 
 ## License
