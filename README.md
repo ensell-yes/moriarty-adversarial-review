@@ -47,6 +47,21 @@ gives a reviewer:
 The same eight dimensions run in reverse as an **authoring** checklist: apply them while *writing*
 an artifact and the findings never land in the first place.
 
+### Three ways to install it
+
+You rarely paste the harness by hand every time — instead, have your **coding agent set it up once**
+in one (or all) of three forms, then invoke it per review:
+
+- **Global** — a user-level instruction that applies in *every* project on your machine.
+- **Rule** — a project-scoped file committed to the repo, so the whole team's agent uses the same
+  rubric.
+- **Skill** — a named, on-demand capability you invoke only when you want a review, instead of an
+  always-on instruction.
+
+[Using the harness in your tools](#using-the-harness-in-your-tools) below gives a copy-paste **setup
+prompt** for Claude Code, Codex, GitHub Copilot, Cursor, and Gemini that builds these files for you
+from `moriarty-adversarial-review-harness.md`.
+
 ## The two-model review loop
 
 The harness is most effective when the **author** and the **reviewer** are *different models in
@@ -69,6 +84,44 @@ Run the loop by passing text between the two sessions:
 4. **Reviewer model — re-review.** Paste the revised artifact and the change summary, then **loop
    from step 2.** Continue until the score clears the bar: **overall ≥ 9.2 and no single dimension
    below 9.2** (the weakest dimension binds the gate).
+
+### Sample loop prompts
+
+Concrete prompts for each turn. They are tool-agnostic — paste them into whichever session holds
+that role. (These assume the harness is already loaded as the reviewer's instructions; if it isn't,
+prepend *"Using the rubric in `moriarty-adversarial-review-harness.md`, …"*.)
+
+**Reviewer turn** (steps 2 and 4):
+
+```text
+Review the artifact below against the adversarial review harness. Work all eight
+dimensions; for each, give findings in Behavior / Evidence / Fix / Test form and a
+score with its severity. Then give the overall as `sum / 8 = X`.
+
+Gate: the artifact is approved only when the overall is >= 9.2 AND no single
+dimension is below 9.2. If the bar isn't met, list the highest-value improvements
+and name the binding dimension(s). Do not approve below the bar.
+
+ARTIFACT:
+<paste the artifact>
+
+SOURCES OF TRUTH (cross-check against these):
+<paste the spec / code / tests, or links>
+```
+
+**Author turn** (step 3):
+
+```text
+Below are review findings on the artifact you produced. Address each one ONLY if it
+is valid and valuable: fix what's real, and for anything wrong or low-value, push
+back with a one-line reason instead of changing it. Then output (a) the revised
+artifact and (b) a short change summary mapping each finding to what you did.
+
+FINDINGS:
+<paste the reviewer's findings>
+```
+
+Hand the revised artifact and change summary back to the reviewer and repeat until the gate is met.
 
 ### Why 9.2
 
@@ -94,7 +147,16 @@ hand.
 
 In every tool the pattern is the same: load `moriarty-adversarial-review-harness.md` as the
 reviewer's standing instructions, then assign the **author** and **reviewer** roles to *different
-models* so the loop above has real independence.
+models* so the loop above has real independence. Each tool below maps the three install forms from
+[How to use it](#how-to-use-it) to that tool's files and includes a copy-paste **setup prompt** that
+has your coding agent build them from the harness.
+
+> **Harness source.** The setup prompts read the rubric from the in-repo file
+> `moriarty-adversarial-review-harness.md`. If it isn't in your working repo, point the agent at the
+> raw copy instead:
+> `https://raw.githubusercontent.com/ensell-yes/moriarty-adversarial-review/main/moriarty-adversarial-review-harness.md`
+> If your agent cannot fetch URLs, download the harness into the repo first and have the agent read
+> that local file.
 
 > **Data boundary.** The loop pastes the artifact *and its sources of truth* — which may include
 > private code, secrets, or customer data — into one or more external services. Use only models and
@@ -106,50 +168,114 @@ models* so the loop above has real independence.
 > the exact path against the tool's current documentation — the *mechanism* (load the harness as the
 > reviewer's instructions; run author and reviewer on different models) holds even when a filename
 > moves.
+>
+> **Length-capped fields.** File-based installs can include the harness verbatim. UI text fields, such
+> as Copilot personal custom instructions or a Gemini Gem's Instructions field, may have length caps;
+> if the full harness does not fit, attach it as a file/knowledge source or point the instruction at a
+> local copy or the raw URL instead of pasting the whole text.
 
 ### Claude Code
 
-- Save the harness as a **Skill** — `.claude/skills/adversarial-review/SKILL.md` (paste the harness
-  body under a short `name`/`description` frontmatter) — or as a slash command in
-  `.claude/commands/review.md`. Invoke it on the reviewer's turn.
-- For two models, define a **reviewer subagent** in `.claude/agents/reviewer.md` with a different
-  `model:` in its frontmatter, or run two sessions and switch with `/model`. Hand the artifact to
-  the subagent; it returns findings.
+- **Global:** a user-level skill at `~/.claude/skills/adversarial-review/SKILL.md`, and/or a pointer
+  in `~/.claude/CLAUDE.md` ("use the adversarial-review skill when reviewing any artifact").
+- **Rule:** a project `CLAUDE.md` (or `.claude/CLAUDE.md`) at the repo root that references the
+  skill, so the whole team's Claude Code uses the same rubric.
+- **Skill:** `.claude/skills/adversarial-review/SKILL.md` — frontmatter `name: adversarial-review`
+  plus a one-line `description`, then the harness body. Invoke it on the reviewer's turn.
+- **Two models:** define a reviewer subagent in `.claude/agents/reviewer.md` with a different
+  `model:`, or run two sessions and switch with `/model`.
+
+```text
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
+Create a Claude Code skill at .claude/skills/adversarial-review/SKILL.md: YAML frontmatter with
+name: adversarial-review and a one-line description, then paste the harness body verbatim as the
+skill content. Also add to the project CLAUDE.md: "When asked to review, audit, or critique any
+artifact, use the adversarial-review skill." Include the harness verbatim — do not summarize it.
+```
 
 ### Codex
 
-- Prefer **`AGENTS.md`** at the repo root (or a scoped subdirectory) so the harness loads as
-  standing instructions, or package it as a **Skill** — newer Codex versions steer toward Skills,
-  with a custom prompt under `~/.codex/prompts/review.md` as an on-demand fallback (treated as
-  legacy in current docs).
-- For two models, run the author and reviewer as separate Codex sessions with different `--model`
-  values (or two config profiles).
+- **Global:** `~/.codex/AGENTS.md` (applies to all Codex sessions), and/or a user skill at
+  `~/.agents/skills/adversarial-review/SKILL.md`.
+- **Rule:** `AGENTS.md` at the repo root (committed project instructions).
+- **Skill:** a Codex repo skill at `.agents/skills/adversarial-review/SKILL.md` — current Codex docs
+  list repo skills under `.agents/skills` and user skills under `~/.agents/skills`; a custom prompt
+  under `~/.codex/prompts/review.md` is a legacy on-demand fallback.
+- **Two models:** run author and reviewer as separate Codex sessions with different `--model` values
+  (or two config profiles).
+
+```text
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
+Add an "Adversarial review" section to AGENTS.md at the repo root: "When asked to review, audit, or
+critique any artifact, apply this rubric," followed by the harness body verbatim. Also create a
+Codex repo skill at .agents/skills/adversarial-review/SKILL.md with name/description frontmatter
+and the harness body as its content. Keep the harness text verbatim. If your installed Codex version
+documents a different skill path, use the current documented path instead.
+```
 
 ### Cursor
 
-- Add the harness as a **project rule**: `.cursor/rules/adversarial-review.mdc` (set it to apply on
-  request and invoke it in the review chat). A User Rule works too if you want it across all
-  projects.
-- For two models, use Cursor's **model picker**: author in one chat/model, open a separate chat,
-  switch the model, and run the review there.
+- **Global:** a **User Rule** (Cursor Settings → Rules → User Rules) — applies in every project.
+- **Rule:** `.cursor/rules/adversarial-review.mdc` (committed project rule); set `alwaysApply: true`
+  for always-on.
+- **Skill (≈ on-demand rule):** the same `.mdc` with `alwaysApply: false`, set to Agent-Requested or
+  Manual, so it loads only when you invoke a review.
+- **Two models:** use Cursor's **model picker** — author in one chat/model, review in a separate chat
+  with a different model.
+
+```text
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
+Create .cursor/rules/adversarial-review.mdc: MDC frontmatter with a description and
+alwaysApply: false (Agent-Requested), then the harness body verbatim as the rule content. The rule
+instructs: when reviewing, auditing, or critiquing an artifact, apply this rubric and score it.
+Keep the harness verbatim.
+```
 
 ### GitHub Copilot
 
-- Add the harness as **repository custom instructions** in `.github/copilot-instructions.md` (the
-  broadly-supported, durable surface). A reusable **prompt file** at
-  `.github/prompts/review.prompt.md` also works, but prompt files are an IDE-only feature (VS Code,
-  Visual Studio, JetBrains) and still in public preview — confirm availability for your client.
-- For two models, use the Copilot Chat **model picker** to author with one model and review with
-  another in a separate chat.
+- **Global:** your **personal custom instructions** (GitHub → Copilot settings, or the IDE's
+  user-level Copilot instructions) — applies across all your repos; if the UI field is length-capped,
+  use a short pointer to a local file or raw URL instead of pasting the whole harness.
+- **Rule:** `.github/copilot-instructions.md` (repo-wide), or a path-scoped
+  `.github/instructions/review.instructions.md`.
+- **Skill (≈ prompt file):** `.github/prompts/review.prompt.md` — a reusable prompt run from Copilot
+  Chat (IDE-only — VS Code, Visual Studio, JetBrains — and in public preview; confirm availability
+  for your client).
+- **Two models:** use the Copilot Chat **model picker** — author with one model, review with another
+  in a separate chat.
 
-### Gemini (as a Gem)
+```text
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
+Create .github/prompts/review.prompt.md: frontmatter with a description and mode: agent, a body line
+"Review the provided artifact against the rubric below and score it," then the harness body verbatim.
+Also create .github/copilot-instructions.md noting that artifact reviews follow this rubric. Include
+the harness text verbatim, not a summary.
+```
 
-- In the Gemini app, open **Gems** ("Explore Gems" / the Gem manager, depending on your version) and
-  create a **New Gem**. Name it (e.g. "Adversarial Reviewer") and **paste the harness into the
-  Instructions field**; optionally attach the harness file (and your spec/standards) as
-  **knowledge**. Save it.
-- Use the Gem as your **reviewer**, and author in standard Gemini (or another tool/model) so the two
-  roles run on independent contexts. Paste the artifact into the Gem to get scored findings.
+### Gemini
+
+- **Global:** in the **Gemini app**, a **Gem** is available across all your chats; for the **Gemini
+  CLI**, `~/.gemini/GEMINI.md` is global context.
+- **Rule:** for the CLI, `GEMINI.md` at the repo root (committed project context).
+- **Skill (≈ a Gem):** in the app, **Gems → New Gem** ("Explore Gems" / Gem manager), name it
+  "Adversarial Reviewer", paste the harness into **Instructions** if it fits, and otherwise attach it
+  as **knowledge** or point the Instructions field at a local copy or raw URL.
+- **Two models:** use the Gem as the reviewer and author in standard Gemini (or another tool) so the
+  roles run on independent contexts.
+
+```text
+Read ./moriarty-adversarial-review-harness.md (or a local downloaded copy; fetch the raw URL above
+only if your environment supports web fetch).
+For the Gemini CLI: create GEMINI.md at the repo root stating that artifact reviews follow this
+rubric, with the harness body included verbatim. (For the Gemini app instead: create a Gem named
+"Adversarial Reviewer" and paste the harness as its Instructions if it fits; otherwise attach it as
+knowledge or point the Instructions field at a local copy or raw URL.) Keep the harness verbatim in
+file-based installs.
+```
 
 ## License
 
