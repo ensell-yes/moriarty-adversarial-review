@@ -1,0 +1,58 @@
+name: "CodeQL"
+
+# Code scanning for this repository.
+#
+# The repo currently ships only Markdown, so there is no compiled/interpreted
+# code for CodeQL to analyze yet. This workflow scans the repository's GitHub
+# Actions workflows (`language: actions`), which is functional today and guards
+# the CI surface itself. When source code is added, append matrix rows for those
+# languages (examples are commented below) and code scanning extends to them with
+# no other change.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Weekly re-scan: Mondays at 06:00 UTC.
+    - cron: "0 6 * * 1"
+
+# Least privilege at the top level; the analyze job widens only what it needs.
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload CodeQL results to code scanning
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          # When code lands, add rows such as:
+          #   - language: javascript-typescript
+          #     build-mode: none
+          #   - language: python
+          #     build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
