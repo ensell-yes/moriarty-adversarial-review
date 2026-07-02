@@ -1,4 +1,4 @@
-# moriarty-adversarial-review
+# The Moriarty Adversarial Review Loop
 
 An adversarial review harness for coding agents.
 
